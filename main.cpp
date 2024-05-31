@@ -3,115 +3,123 @@
 #include <cstdlib>
 #include <ctime>
 
-// 게임 설정 상수
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
-const int BLOCK_SIZE = 30;
-const float DROP_SPEED = 0.5f;
+const int windowWidth = 600;
+const int windowHeight = 800;
+const int blockSize = 60;
+const int initialBlockCount = 5;
 
-// 블록 클래스 정의
-class Block {
-public:
-    // 블록 생성자: 위치와 속도를 설정
-    Block(float x, float y, float speed)
-        : speed(speed) {
-        shape.setSize(sf::Vector2f(BLOCK_SIZE, BLOCK_SIZE));
-        shape.setFillColor(sf::Color::Green);
-        shape.setPosition(x, y);
-    }
-
-    // 블록 이동 함수
-    void move(float offsetX, float offsetY) {
-        shape.move(offsetX, offsetY);
-    }
-
-    // 블록의 모양 반환
-    const sf::RectangleShape& getShape() const {
-        return shape;
-    }
-
-    // 블록의 y 좌표 반환
-    float getYPosition() const {
-        return shape.getPosition().y;
-    }
-
-private:
-    sf::RectangleShape shape; // 블록의 모양
-    float speed; // 블록의 속도
-};
-
-// 블록을 초기화하는 함수
-void initializeBlock(Block& block) {
-    block = Block(WINDOW_WIDTH / 2, 0, DROP_SPEED);
+sf::Color getRandomColor() {
+    return sf::Color(rand() % 256, rand() % 256, rand() % 256);
 }
 
-// 현재 블록이 정착된 블록들과 충돌하는지 확인하는 함수
-bool checkCollision(const Block& block, const std::vector<Block>& settledBlocks) {
-    for (const auto& settledBlock : settledBlocks) {
-        if (block.getShape().getGlobalBounds().intersects(settledBlock.getShape().getGlobalBounds())) {
-            return true;
-        }
+int main()
+{
+    std::srand(static_cast<unsigned int>(std::time(nullptr))); // 랜덤 시드 설정
+
+    sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Block Stacking Game");
+    window.setFramerateLimit(60);
+
+    sf::RectangleShape block(sf::Vector2f(blockSize, blockSize));
+    block.setFillColor(getRandomColor());
+    block.setPosition((windowWidth - blockSize) / 2, 0);
+
+    sf::RectangleShape floor(sf::Vector2f(windowWidth, 5));
+    floor.setFillColor(sf::Color::Black);
+    floor.setPosition(0, windowHeight - 5);
+
+    std::vector<sf::RectangleShape> blocks;
+
+    // 초기 블록 5개 생성
+    for (int i = 0; i < initialBlockCount; ++i) {
+        sf::RectangleShape initialBlock(sf::Vector2f(blockSize, blockSize));
+        initialBlock.setFillColor(getRandomColor());
+        initialBlock.setPosition((windowWidth - blockSize) / 2, windowHeight - (i + 1) * blockSize - 5);
+        blocks.push_back(initialBlock);
     }
-    return false;
-}
 
-int main() {
-    // SFML 윈도우 생성
-    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML Block Game");
-    window.setFramerateLimit(60); // 프레임 제한
+    bool falling = false;
+    float blockSpeed = 3.0f;
+    float dropSpeed = 10.0f;
 
-    std::srand(static_cast<unsigned int>(std::time(nullptr))); // 난수 시드 설정
+    // 뷰 설정
+    sf::View view = window.getDefaultView();
+    float viewYOffset = 0;
 
-    // 현재 블록 초기화
-    Block currentBlock(WINDOW_WIDTH / 2, 0, DROP_SPEED);
-    std::vector<Block> settledBlocks; // 정착된 블록들 저장
-
-    while (window.isOpen()) {
+    while (window.isOpen())
+    {
         sf::Event event;
-        while (window.pollEvent(event)) {
+        while (window.pollEvent(event))
+        {
             if (event.type == sf::Event::Closed)
-                window.close(); // 윈도우 닫기 이벤트 처리
-        }
-
-        // 좌우 이동 입력 처리
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) &&
-            currentBlock.getShape().getPosition().x > 0) {
-            currentBlock.move(-BLOCK_SIZE, 0); // 왼쪽으로 이동
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) &&
-            currentBlock.getShape().getPosition().x < WINDOW_WIDTH - BLOCK_SIZE) {
-            currentBlock.move(BLOCK_SIZE, 0); // 오른쪽으로 이동
-        }
-
-        // 블록 아래로 이동
-        currentBlock.move(0, DROP_SPEED);
-
-        bool blockSettled = false;
-
-        // 블록이 바닥에 닿았는지 확인
-        if (currentBlock.getYPosition() >= WINDOW_HEIGHT - BLOCK_SIZE) {
-            blockSettled = true;
-        }
-        else {
-            // 블록이 다른 블록과 충돌하는지 확인
-            if (checkCollision(currentBlock, settledBlocks)) {
-                blockSettled = true;
+                window.close();
+            if (event.type == sf::Event::KeyPressed)
+            {
+                if (event.key.code == sf::Keyboard::Space)
+                    falling = true;
             }
         }
 
-        // 블록이 정착되면 새로운 블록 생성
-        if (blockSettled) {
-            settledBlocks.push_back(currentBlock);
-            initializeBlock(currentBlock);
+        if (!falling)
+        {
+            // 블록 좌우 이동
+            static bool movingRight = true;
+            if (movingRight)
+            {
+                block.move(blockSpeed, 0);
+                if (block.getPosition().x + blockSize >= windowWidth)
+                    movingRight = false;
+            }
+            else
+            {
+                block.move(-blockSpeed, 0);
+                if (block.getPosition().x <= 0)
+                    movingRight = true;
+            }
+        }
+        else
+        {
+            // 블록 떨어짐
+            block.move(0, dropSpeed);
+
+            // 블록 충돌 감지 및 쌓기
+            for (const auto& placedBlock : blocks)
+            {
+                if (block.getGlobalBounds().intersects(placedBlock.getGlobalBounds()))
+                {
+                    block.setPosition(block.getPosition().x, placedBlock.getPosition().y - blockSize);
+                    blocks.push_back(block);
+                    block.setFillColor(getRandomColor()); // 새 블록 색상 설정
+                    block.setPosition((windowWidth - blockSize) / 2, viewYOffset);
+                    falling = false;
+                    viewYOffset -= blockSize; // 뷰 오프셋 조정
+                    view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
+                    window.setView(view);
+                    break;
+                }
+            }
+
+            // 바닥에 닿으면 멈춤
+            if (block.getPosition().y + blockSize >= windowHeight + viewYOffset - 5)
+            {
+                block.setPosition(block.getPosition().x, windowHeight + viewYOffset - blockSize - 5);
+                blocks.push_back(block);
+                block.setFillColor(getRandomColor()); // 새 블록 색상 설정
+                block.setPosition((windowWidth - blockSize) / 2, viewYOffset);
+                falling = false;
+                viewYOffset -= blockSize; // 뷰 오프셋 조정
+                view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
+                window.setView(view);
+            }
         }
 
-        // 윈도우 그리기
-        window.clear();
-        for (const auto& block : settledBlocks) {
-            window.draw(block.getShape());
+        window.clear(sf::Color::White);
+        window.setView(view); // 뷰 적용
+        for (const auto& placedBlock : blocks)
+        {
+            window.draw(placedBlock);
         }
-        window.draw(currentBlock.getShape());
+        window.draw(block);
+        window.draw(floor);
         window.display();
     }
 
