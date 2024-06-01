@@ -12,11 +12,7 @@ const int windowHeight = 800;
 const int blockSize = 60;
 const int initialBlockCount = 5;
 
-sf::Color getRandomColor() {
-    return sf::Color(rand() % 256, rand() % 256, rand() % 256);
-}
-
-// HSV¿¡¼­ RGB·Î º¯È¯ÇÏ´Â ÇÔ¼ö
+// HSVì—ì„œ RGBë¡œ ë³€í™˜í•˜ëŠ” í•¨ìˆ˜
 sf::Color HSVtoRGB(float h, float s, float v) {
     int hi = static_cast<int>(std::floor(h / 60.0f)) % 6;
     float f = h / 60.0f - std::floor(h / 60.0f);
@@ -31,11 +27,26 @@ sf::Color HSVtoRGB(float h, float s, float v) {
     case 3: return sf::Color(p * 255, q * 255, v * 255);
     case 4: return sf::Color(t * 255, p * 255, v * 255);
     case 5: return sf::Color(v * 255, p * 255, q * 255);
-    default: return sf::Color(255, 255, 255); // ÀÌ °æ¿ì´Â ¾øÁö¸¸ ±âº»°ªÀ¸·Î ¼³Á¤
+    default: return sf::Color(255, 255, 255); // ì´ ê²½ìš°ëŠ” ì—†ì§€ë§Œ ê¸°ë³¸ê°’ìœ¼ë¡œ ì„¤ì •
     }
 }
 
-// ÅØ½ºÆ® ÃÊ±âÈ­ ÇÔ¼ö
+sf::Color getRandomHSVColor() {
+    // ëœë¤í•œ H(ìƒ‰ìƒ) ê°’ì„ ìƒì„±
+    float h = static_cast<float>(rand() % 360); // 0ë¶€í„° 360ê¹Œì§€ì˜ ëœë¤í•œ ìƒ‰ìƒê°’ ìƒì„±
+
+    // ëœë¤í•œ S(ì±„ë„) ê°’ ìƒì„±
+    float min = 0.0f; // ìµœì†Œ ì±„ë„ ê°’
+    float max = 1.0f; // ìµœëŒ€ ì±„ë„ ê°’
+    float s = min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min)); // minì™€ max ì‚¬ì´ì˜ ëœë¤í•œ ì±„ë„ê°’ ìƒì„±
+
+    // ëœë¤í•œ V(ëª…ë„) ê°’ ìƒì„±
+    float v = min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min)); // minì™€ max ì‚¬ì´ì˜ ëœë¤í•œ ëª…ë„ê°’ ìƒì„±
+    // HSV ê°’ì„ RGBë¡œ ë³€í™˜í•˜ì—¬ ë°˜í™˜
+    return HSVtoRGB(h, s, v);
+}
+
+// í…ìŠ¤íŠ¸ ì´ˆê¸°í™” í•¨ìˆ˜
 sf::Text initializeText(const std::string& str, const sf::Font& font, int size, sf::Color color, float x, float y) {
     sf::Text text;
     text.setFont(font);
@@ -46,14 +57,21 @@ sf::Text initializeText(const std::string& str, const sf::Font& font, int size, 
     return text;
 }
 
-// ºí·Ï ½ºÅÂÅ· °ÔÀÓ ÇÔ¼ö
+// ë¸”ë¡ ìŠ¤íƒœí‚¹ ê²Œì„ í•¨ìˆ˜
 void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturationTop, float valueTop,
     float hueBottom, float saturationBottom, float valueBottom) {
-    std::srand(static_cast<unsigned int>(std::time(nullptr))); // ·£´ı ½Ãµå ¼³Á¤
+    std::srand(static_cast<unsigned int>(std::time(nullptr))); // ëœë¤ ì‹œë“œ ì„¤ì •
+
+    // ë·° ì„¤ì •
+    sf::View view = window.getDefaultView();
+    float viewYOffset = -(windowHeight / 2 - (initialBlockCount / 2) * blockSize);
+
+    view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
+    window.setView(view);
 
     sf::RectangleShape block(sf::Vector2f(blockSize, blockSize));
-    block.setFillColor(getRandomColor());
-    block.setPosition((windowWidth - blockSize) / 2, 0);
+    block.setFillColor(getRandomHSVColor());
+    block.setPosition((windowWidth - blockSize) / 2, 0); // ë¸”ë¡ ì´ˆê¸° ìœ„ì¹˜ ì„¤ì •
 
     sf::RectangleShape floor(sf::Vector2f(windowWidth, 5));
     floor.setFillColor(sf::Color::Black);
@@ -61,11 +79,13 @@ void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturati
 
     std::vector<sf::RectangleShape> blocks;
 
-    // ÃÊ±â ºí·Ï 5°³ »ı¼º
+    // ì´ˆê¸° ë¸”ë¡ 5ê°œ ìƒì„±
+    float initialYPosition = windowHeight / 2 - (initialBlockCount / 2) * blockSize;
+
     for (int i = 0; i < initialBlockCount; ++i) {
         sf::RectangleShape initialBlock(sf::Vector2f(blockSize, blockSize));
-        initialBlock.setFillColor(getRandomColor());
-        initialBlock.setPosition((windowWidth - blockSize) / 2, windowHeight - (i + 1) * blockSize - 5);
+        initialBlock.setFillColor(getRandomHSVColor());
+        initialBlock.setPosition((windowWidth - blockSize) / 2, initialYPosition + i * blockSize);
         blocks.push_back(initialBlock);
     }
 
@@ -73,96 +93,66 @@ void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturati
     float blockSpeed = 3.0f;
     float dropSpeed = 10.0f;
 
-    // ºä ¼³Á¤
-    sf::View view = window.getDefaultView();
-    float viewYOffset = 0;
-
-    while (window.isOpen())
-    {
+    while (window.isOpen()) {
         sf::Event event;
-        while (window.pollEvent(event))
-        {
+        while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
-            if (event.type == sf::Event::KeyPressed)
-            {
+            if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Space)
                     falling = true;
             }
         }
 
-        if (!falling)
-        {
-            // ºí·Ï ÁÂ¿ì ÀÌµ¿
+        if (!falling) {
+            // ë¸”ë¡ ì¢Œìš° ì´ë™
             static bool movingRight = true;
-            if (movingRight)
-            {
+            if (movingRight) {
                 block.move(blockSpeed, 0);
                 if (block.getPosition().x + blockSize >= windowWidth)
                     movingRight = false;
             }
-            else
-            {
+            else {
                 block.move(-blockSpeed, 0);
                 if (block.getPosition().x <= 0)
                     movingRight = true;
             }
         }
-        else
-        {
-            // ºí·Ï ¶³¾îÁü
+        else {
+            // ë¸”ë¡ ë–¨ì–´ì§
             block.move(0, dropSpeed);
 
-            // ºí·Ï Ãæµ¹ °¨Áö ¹× ½×±â
-            for (const auto& placedBlock : blocks)
-            {
-                if (block.getGlobalBounds().intersects(placedBlock.getGlobalBounds()))
-                {
+            // ë¸”ë¡ ì¶©ëŒ ê°ì§€ ë° ìŒ“ê¸°
+            for (const auto& placedBlock : blocks) {
+                if (block.getGlobalBounds().intersects(placedBlock.getGlobalBounds())) {
                     block.setPosition(block.getPosition().x, placedBlock.getPosition().y - blockSize);
                     blocks.push_back(block);
-                    block.setFillColor(getRandomColor()); // »õ ºí·Ï »ö»ó ¼³Á¤
-                    block.setPosition((windowWidth - blockSize) / 2, viewYOffset);
+                    block.setFillColor(getRandomHSVColor()); // ìƒˆ ë¸”ë¡ ìƒ‰ìƒ ì„¤ì •
+                    block.setPosition((windowWidth - blockSize) / 2, viewYOffset + blockSize*3.5);
                     falling = false;
-                    viewYOffset -= blockSize; // ºä ¿ÀÇÁ¼Â Á¶Á¤
+                    viewYOffset -= blockSize; // ë·° ì˜¤í”„ì…‹ ì¡°ì •
                     view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
                     window.setView(view);
                     break;
                 }
             }
 
-            // ¹Ù´Ú¿¡ ´êÀ¸¸é ¸ØÃã
-            if (block.getPosition().y + blockSize >= windowHeight + viewYOffset - 5)
-            {
+            // ë°”ë‹¥ì— ë‹¿ìœ¼ë©´ ë©ˆì¶¤
+            if (block.getPosition().y + blockSize >= windowHeight + viewYOffset - 5) {
                 block.setPosition(block.getPosition().x, windowHeight + viewYOffset - blockSize - 5);
                 blocks.push_back(block);
-                block.setFillColor(getRandomColor()); // »õ ºí·Ï »ö»ó ¼³Á¤
-                block.setPosition((windowWidth - blockSize) / 2, viewYOffset);
+                block.setFillColor(getRandomHSVColor()); // ìƒˆ ë¸”ë¡ ìƒ‰ìƒ ì„¤ì •
                 falling = false;
-                viewYOffset -= blockSize; // ºä ¿ÀÇÁ¼Â Á¶Á¤
+                viewYOffset -= blockSize; // ë·° ì˜¤í”„ì…‹ ì¡°ì •
                 view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
                 window.setView(view);
             }
         }
 
         window.clear();
-        // ±×¶óµ¥ÀÌ¼Ç ¹è°æ ±×¸®±â
-        float gradientStartY = windowHeight + viewYOffset;
-        for (int y = 0; y < windowHeight; ++y) {
-            float t = static_cast<float>(y) / windowHeight; // 0.0 ~ 1.0 »çÀÌ °ª
-            float hue = (1.0f - t) * hueTop + t * hueBottom;
-            float saturation = (1.0f - t) * saturationTop + t * saturationBottom;
-            float value = (1.0f - t) * valueTop + t * valueBottom;
-
-            sf::Color bgColor = HSVtoRGB(hue, saturation, value);
-
-            sf::RectangleShape rect(sf::Vector2f(windowWidth, 1));
-            rect.setPosition(0, gradientStartY - y);
-            rect.setFillColor(bgColor);
-            window.draw(rect);
-        }
-
-        for (const auto& placedBlock : blocks)
-        {
+        window.clear(sf::Color::White);
+        window.setView(view); // ë·° ì ìš©
+        for (const auto& placedBlock : blocks) {
             window.draw(placedBlock);
         }
         window.draw(block);
@@ -170,38 +160,40 @@ void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturati
         window.display();
     }
 }
+
+
 int main() {
-    // À©µµ¿ì »ı¼º
+    // ìœˆë„ìš° ìƒì„±
     sf::RenderWindow window(sf::VideoMode(800, 600), "Stack Game");
 
-    // ÆùÆ® ·Îµå
+    // í°íŠ¸ ë¡œë“œ
     sf::Font font;
     if (!font.loadFromFile("28 Days Later.ttf")) {
         std::cerr << "ERROR" << std::endl;
         return -1;
     }
 
-    // ÅØ½ºÆ® ÃÊ±âÈ­
+    // í…ìŠ¤íŠ¸ ì´ˆê¸°í™”
     sf::Text title = initializeText("Stack Game", font, 50, sf::Color::White, 250, 100);
     sf::Text startButton = initializeText("START", font, 30, sf::Color::White, 330, 300);
     sf::Text exitButton = initializeText("EXIT", font, 30, sf::Color::White, 350, 400);
 
-    // À§ÂÊ »ö»ó ¹× Ã¤µµ, ¸íµµ ¼³Á¤
+    // ìœ„ìª½ ìƒ‰ìƒ ë° ì±„ë„, ëª…ë„ ì„¤ì •
     float hueTop = 0.0f;
     float saturationTop = 0.01f;
     float valueTop = 0.9f;
 
-    // ¾Æ·¡ÂÊ »ö»ó ¹× Ã¤µµ, ¸íµµ ¼³Á¤
+    // ì•„ë˜ìª½ ìƒ‰ìƒ ë° ì±„ë„, ëª…ë„ ì„¤ì •
     float hueBottom = 0.0f;
     float saturationBottom = 0.01f;
     float valueBottom = 0.1f;
 
-    // ¼Óµµ ¼³Á¤
-    float hueSpeed = 0.01f; // »ö»ó º¯È­ ¼Óµµ
-    float saturationSpeed = 0.0001f; // Ã¤µµ º¯È­ ¼Óµµ
-    float valueSpeed = 0.00005f;      // ¸íµµ º¯È­ ¼Óµµ
+    // ì†ë„ ì„¤ì •
+    float hueSpeed = 0.01f; // ìƒ‰ìƒ ë³€í™” ì†ë„
+    float saturationSpeed = 0.0001f; // ì±„ë„ ë³€í™” ì†ë„
+    float valueSpeed = 0.00005f;      // ëª…ë„ ë³€í™” ì†ë„
 
-    // ¸ŞÀÎ ·çÇÁ
+    // ë©”ì¸ ë£¨í”„
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -214,30 +206,30 @@ int main() {
                     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
                     sf::FloatRect startButtonRect = startButton.getGlobalBounds();
 
-                    // "°ÔÀÓ ½ÃÀÛ" ¹öÆ° Å¬¸¯ È®ÀÎ
+                    // "ê²Œì„ ì‹œì‘" ë²„íŠ¼ í´ë¦­ í™•ì¸
                     if (startButtonRect.contains(static_cast<sf::Vector2f>(mousePos))) {
-                        std::cout << "°ÔÀÓ ½ÃÀÛ ¹öÆ° Å¬¸¯!" << std::endl;
-                        window.setFramerateLimit(60); // ÇÁ·¹ÀÓ ·¹ÀÌÆ® Á¦ÇÑ ¼³Á¤
-                        runBlockStackingGame(window, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom); // ºí·Ï ½ºÅÂÅ· °ÔÀÓÀ¸·Î ÀÌµ¿
-                        return 0; // °ÔÀÓ Á¾·á ½Ã ÇÁ·Î±×·¥ Á¾·á
+                        std::cout << "ê²Œì„ ì‹œì‘ ë²„íŠ¼ í´ë¦­!" << std::endl;
+                        window.setFramerateLimit(60); // í”„ë ˆì„ ë ˆì´íŠ¸ ì œí•œ ì„¤ì •
+                        runBlockStackingGame(window, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom); // ë¸”ë¡ ìŠ¤íƒœí‚¹ ê²Œì„ìœ¼ë¡œ ì´ë™
+                        return 0; // ê²Œì„ ì¢…ë£Œ ì‹œ í”„ë¡œê·¸ë¨ ì¢…ë£Œ
                     }
 
-                    // "Á¾·á" ¹öÆ° Å¬¸¯ È®ÀÎ
+                    // "ì¢…ë£Œ" ë²„íŠ¼ í´ë¦­ í™•ì¸
                     sf::FloatRect exitButtonRect = exitButton.getGlobalBounds();
                     if (exitButtonRect.contains(static_cast<sf::Vector2f>(mousePos))) {
-                        std::cout << "Á¾·á ¹öÆ° Å¬¸¯!" << std::endl;
+                        std::cout << "ì¢…ë£Œ ë²„íŠ¼ í´ë¦­!" << std::endl;
                         window.close();
                     }
                 }
             }
         }
 
-        // È­¸é Áö¿ì±â
+        // í™”ë©´ ì§€ìš°ê¸°
         window.clear();
 
-        // »ó´ÜºÎÅÍ ÇÏ´Ü±îÁö ±×¶óµ¥ÀÌ¼Ç ±×¸®±â
+        // ìƒë‹¨ë¶€í„° í•˜ë‹¨ê¹Œì§€ ê·¸ë¼ë°ì´ì…˜ ê·¸ë¦¬ê¸°
         for (int y = 0; y < window.getSize().y; ++y) {
-            float t = static_cast<float>(y) / window.getSize().y; // 0.0 ~ 1.0 »çÀÌ °ª
+            float t = static_cast<float>(y) / window.getSize().y; // 0.0 ~ 1.0 ì‚¬ì´ ê°’
             float hue = (1.0f - t) * hueTop + t * hueBottom;
             float saturation = (1.0f - t) * saturationTop + t * saturationBottom;
             float value = (1.0f - t) * valueTop + t * valueBottom;
@@ -250,44 +242,43 @@ int main() {
             window.draw(rect);
         }
 
-        // ÅØ½ºÆ® ±×¸®±â
+        // í…ìŠ¤íŠ¸ ê·¸ë¦¬ê¸°
         window.draw(title);
         window.draw(startButton);
         window.draw(exitButton);
 
-        // À©µµ¿ì¿¡ ±×¸° ³»¿ë Ç¥½Ã
+        // ìœˆë„ìš°ì— ê·¸ë¦° ë‚´ìš© í‘œì‹œ
         window.display();
 
-        hueTop += hueSpeed; // ´ÙÀ½ »ö»óÀ¸·Î ÀÌµ¿
+        hueTop += hueSpeed; // ë‹¤ìŒ ìƒ‰ìƒìœ¼ë¡œ ì´ë™
         if (hueTop >= 360.0f) {
-            hueTop -= 360.0f; // 360µµ¸¦ ÃÊ°úÇÏ¸é ´Ù½Ã 0µµ·Î µ¹¾Æ°¨
+            hueTop -= 360.0f; // 360ë„ë¥¼ ì´ˆê³¼í•˜ë©´ ë‹¤ì‹œ 0ë„ë¡œ ëŒì•„ê°
         }
-        hueBottom += hueSpeed; // ´ÙÀ½ »ö»óÀ¸·Î ÀÌµ¿
+        hueBottom += hueSpeed; // ë‹¤ìŒ ìƒ‰ìƒìœ¼ë¡œ ì´ë™
         if (hueBottom >= 360.0f) {
-            hueBottom -= 360.0f; // 360µµ¸¦ ÃÊ°úÇÏ¸é ´Ù½Ã 0µµ·Î µ¹¾Æ°¨
+            hueBottom -= 360.0f; // 360ë„ë¥¼ ì´ˆê³¼í•˜ë©´ ë‹¤ì‹œ 0ë„ë¡œ ëŒì•„ê°
         }
-        // ¸íµµ¿Í Ã¤µµ ¾÷µ¥ÀÌÆ®
+        // ëª…ë„ì™€ ì±„ë„ ì—…ë°ì´íŠ¸
         saturationTop += saturationSpeed;
         if (saturationTop >= 1.0f || saturationTop <= 0.0f) {
-            saturationSpeed *= -1; // ¹æÇâÀ» ¹Ù²Ş
+            saturationSpeed *= -1; // ë°©í–¥ì„ ë°”ê¿ˆ
         }
 
         valueTop += valueSpeed;
         if (valueTop >= 1.0f || valueTop <= 0.5f) {
-            valueSpeed *= -1; // ¹æÇâÀ» ¹Ù²Ş
+            valueSpeed *= -1; // ë°©í–¥ì„ ë°”ê¿ˆ
         }
 
         saturationBottom += saturationSpeed;
         if (saturationBottom >= 1.0f || saturationBottom <= 0.0f) {
-            saturationSpeed *= -1; // ¹æÇâÀ» ¹Ù²Ş
+            saturationSpeed *= -1; // ë°©í–¥ì„ ë°”ê¿ˆ
         }
 
         valueBottom += valueSpeed;
         if (valueBottom >= 1.0f || valueBottom <= 0.1f) {
-            valueSpeed *= -1; // ¹æÇâÀ» ¹Ù²Ş
+            valueSpeed *= -1; // ë°©í–¥ì„ ë°”ê¿ˆ
         }
     }
 
     return 0;
 }
-
