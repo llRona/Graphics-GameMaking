@@ -31,17 +31,29 @@ sf::Color HSVtoRGB(float h, float s, float v) {
     }
 }
 
+// 색상을 가져오는 함수
 sf::Color getRandomHSVColor() {
-    // 랜덤한 H(색상) 값을 생성
-    float h = static_cast<float>(rand() % 360); // 0부터 360까지의 랜덤한 색상값 생성
+    static bool isHueInitialized = false; // h가 초기화되었는지 여부를 추적하는 변수
+    static float h; // 초기 H 값을 저장하는 변수
+
+    if (!isHueInitialized) {
+        // h를 처음 한 번만 랜덤하게 초기화
+        h = static_cast<float>(rand()) / static_cast<float>(RAND_MAX / 360.0f);
+        isHueInitialized = true;
+    }
+
+    h += 5.0f; // 예시로 5씩 더해줌
+    if (h > 360.0f)
+        h -= 360.0f; // 360도를 넘어가면 다시 0으로 돌아옴
 
     // 랜덤한 S(채도) 값 생성
-    float min = 0.0f; // 최소 채도 값
+    float min = 0.5f; // 최소 채도 값
     float max = 1.0f; // 최대 채도 값
     float s = min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min)); // min와 max 사이의 랜덤한 채도값 생성
 
     // 랜덤한 V(명도) 값 생성
     float v = min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min)); // min와 max 사이의 랜덤한 명도값 생성
+
     // HSV 값을 RGB로 변환하여 반환
     return HSVtoRGB(h, s, v);
 }
@@ -57,9 +69,25 @@ sf::Text initializeText(const std::string& str, const sf::Font& font, int size, 
     return text;
 }
 
+// HSV 색상 값을 조금씩 변경하는 함수
+void changeHSV(float& hue, float& saturation, float& value, float& hueChange, float& saturationChange, float& valueChange) {
+    hue += hueChange;
+    if (hue >= 360.0f) {
+        hue -= 360.0f; // 360도를 초과하면 다시 0도로 돌아감
+    }
+    saturation += saturationChange;
+    if (saturation >= 1.0f || saturation <= 0.0f) {
+        saturationChange *= -1; // 방향을 바꿈
+    }
+    value += valueChange;
+    if (value >= 1.0f || value <= 0.1f) {
+        valueChange *= -1; // 방향을 바꿈
+    }
+}
+
 // 블록 스태킹 게임 함수
 void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturationTop, float valueTop,
-    float hueBottom, float saturationBottom, float valueBottom) {
+    float hueBottom, float saturationBottom, float valueBottom, float hueSpeed, float saturationSpeed, float valueSpeed) {
     std::srand(static_cast<unsigned int>(std::time(nullptr))); // 랜덤 시드 설정
 
     // 뷰 설정
@@ -128,7 +156,7 @@ void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturati
                     block.setPosition(block.getPosition().x, placedBlock.getPosition().y - blockSize);
                     blocks.push_back(block);
                     block.setFillColor(getRandomHSVColor()); // 새 블록 색상 설정
-                    block.setPosition((windowWidth - blockSize) / 2, viewYOffset + blockSize*3.5);
+                    block.setPosition((windowWidth - blockSize) / 2, viewYOffset + blockSize * 3.5);
                     falling = false;
                     viewYOffset -= blockSize; // 뷰 오프셋 조정
                     view.setCenter(windowWidth / 2, windowHeight / 2 + viewYOffset);
@@ -149,8 +177,26 @@ void runBlockStackingGame(sf::RenderWindow& window, float hueTop, float saturati
             }
         }
 
+        // 매 프레임마다 HSV 값을 변경하고 그라데이션을 그림
+        changeHSV(hueTop, saturationTop, valueTop, hueSpeed, saturationSpeed, valueSpeed); // HSV 색상 값을 변경
+        changeHSV(hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed); // HSV 색상 값을 변경
+
         window.clear();
-        window.clear(sf::Color::White);
+        // 그라데이션 배경 그리기
+        float gradientStartY = viewYOffset;
+        for (int y = 0; y < windowHeight; ++y) {
+            float t = static_cast<float>(y) / windowHeight; // 0.0 ~ 1.0 사이 값
+            float hue = (1.0f - t) * hueTop + t * hueBottom;
+            float saturation = (1.0f - t) * saturationTop + t * saturationBottom;
+            float value = (1.0f - t) * valueTop + t * valueBottom;
+
+            sf::Color bgColor = HSVtoRGB(hue, saturation, value);
+
+            sf::RectangleShape rect(sf::Vector2f(windowWidth, 1));
+            rect.setPosition(0, gradientStartY + y);
+            rect.setFillColor(bgColor);
+            window.draw(rect);
+        }
         window.setView(view); // 뷰 적용
         for (const auto& placedBlock : blocks) {
             window.draw(placedBlock);
@@ -210,7 +256,7 @@ int main() {
                     if (startButtonRect.contains(static_cast<sf::Vector2f>(mousePos))) {
                         std::cout << "게임 시작 버튼 클릭!" << std::endl;
                         window.setFramerateLimit(60); // 프레임 레이트 제한 설정
-                        runBlockStackingGame(window, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom); // 블록 스태킹 게임으로 이동
+                        runBlockStackingGame(window, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed); // 블록 스태킹 게임으로 이동
                         return 0; // 게임 종료 시 프로그램 종료
                     }
 
@@ -250,34 +296,9 @@ int main() {
         // 윈도우에 그린 내용 표시
         window.display();
 
-        hueTop += hueSpeed; // 다음 색상으로 이동
-        if (hueTop >= 360.0f) {
-            hueTop -= 360.0f; // 360도를 초과하면 다시 0도로 돌아감
-        }
-        hueBottom += hueSpeed; // 다음 색상으로 이동
-        if (hueBottom >= 360.0f) {
-            hueBottom -= 360.0f; // 360도를 초과하면 다시 0도로 돌아감
-        }
-        // 명도와 채도 업데이트
-        saturationTop += saturationSpeed;
-        if (saturationTop >= 1.0f || saturationTop <= 0.0f) {
-            saturationSpeed *= -1; // 방향을 바꿈
-        }
-
-        valueTop += valueSpeed;
-        if (valueTop >= 1.0f || valueTop <= 0.5f) {
-            valueSpeed *= -1; // 방향을 바꿈
-        }
-
-        saturationBottom += saturationSpeed;
-        if (saturationBottom >= 1.0f || saturationBottom <= 0.0f) {
-            saturationSpeed *= -1; // 방향을 바꿈
-        }
-
-        valueBottom += valueSpeed;
-        if (valueBottom >= 1.0f || valueBottom <= 0.1f) {
-            valueSpeed *= -1; // 방향을 바꿈
-        }
+        // 매 프레임마다 HSV 값을 변경하고 그라데이션을 그림
+        changeHSV(hueTop, saturationTop, valueTop, hueSpeed, saturationSpeed, valueSpeed); // HSV 색상 값을 변경
+        changeHSV(hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed); // HSV 색상 값을 변경
     }
 
     return 0;
