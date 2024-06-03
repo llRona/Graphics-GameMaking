@@ -5,12 +5,6 @@
 - 블록쌓기 게임으로 블록을 쌓는 양에 따라 점수를 얻는 게임입니다. 
 - C++와 SFML API를 활용하여 구현하였습니다.
 
-## Release
-
-[Release 1.0](https://github.com/llRona/Graphics-GameMaking)
-<br>
-[Release 1.1](https://github.com/llRona/Graphics-GameMaking)
-
 ## 소감
 - 전하준 (leader)
   - 처음, 어떤 주제로 해야하나 난해했지만, 조원들과 토의하니 게임 주제와 사용할 API를 정하는 것을 매끄럽게 진행할 수 있었습니다. 코드는 chatGPT가 짠 코드를 중심으로 원하는 기능들을 추가하는 방식으로 수행했으며, 저는 Prompt Chaining 기법을 사용해서 게임의 기본적인 틀부터 한가지 기능씩 연쇄적으로 추가하여 게임의 기본 코드를 작성하였습니다. 이번 프로젝트를 진행하면서 팀원들과의 협업과 LLM 활용이 좀 더 능숙해 진것 같습니다. 
