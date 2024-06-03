@@ -9,6 +9,7 @@ const int windowHeight = 800;
 const int blockSize = 60;
 const int initialBlockCount = 5;
 const float initialLineY = 700; // 초기 수평선의 y 위치
+bool quit = false;
 
 // HSV에서 RGB로 변환하는 함수
 sf::Color HSVtoRGB(float h, float s, float v) {
@@ -26,6 +27,7 @@ sf::Color HSVtoRGB(float h, float s, float v) {
     case 4: return sf::Color(t * 255, p * 255, v * 255);
     case 5: return sf::Color(v * 255, p * 255, q * 255);
     default: return sf::Color(255, 255, 255); // 이 경우는 없지만 기본값으로 설정
+
     }
 }
 
@@ -167,7 +169,6 @@ bool handleBlockFalling(sf::RectangleShape& block, std::vector<sf::RectangleShap
     return true; // 계속 낙하
 }
 
-    // 시작화면 함수
 bool startScreen(sf::RenderWindow& window, sf::Font& font, float& hueTop, float& saturationTop, float& valueTop,
     float& hueBottom, float& saturationBottom, float& valueBottom, float hueSpeed, float saturationSpeed, float valueSpeed, float& viewYOffset) {
     // 텍스트 초기화
@@ -179,11 +180,6 @@ bool startScreen(sf::RenderWindow& window, sf::Font& font, float& hueTop, float&
     title.setOrigin(title.getLocalBounds().width / 2, title.getLocalBounds().height / 2);
     startButton.setOrigin(startButton.getLocalBounds().width / 2, startButton.getLocalBounds().height / 2);
     exitButton.setOrigin(exitButton.getLocalBounds().width / 2, exitButton.getLocalBounds().height / 2);
-
-    // 버튼의 초기 위치 설정
-    float buttonYOffset = viewYOffset; // 버튼의 Y 위치를 뷰의 Y 오프셋과 동일하게 설정
-    startButton.setPosition(windowWidth / 2, windowHeight / 2 + buttonYOffset);
-    exitButton.setPosition(windowWidth / 2, windowHeight / 2 + 100 + buttonYOffset);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -211,6 +207,7 @@ bool startScreen(sf::RenderWindow& window, sf::Font& font, float& hueTop, float&
                 }
             }
         }
+
         // 화면 지우기
         window.clear();
 
@@ -226,17 +223,13 @@ bool startScreen(sf::RenderWindow& window, sf::Font& font, float& hueTop, float&
         window.display();
 
         // 매 프레임마다 HSV 값을 변경하고 그라데이션을 그림
-        changeHSV(hueTop, saturationTop, valueTop, hueSpeed, saturationSpeed, valueSpeed); // HSV 색상 값을 변경
+        changeHSV(hueTop, saturationTop, valueTop, hueSpeed, saturationSpeed, valueSpeed);
         changeHSV(hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed);
-
-        // 텍스트의 위치가 변경될 때마다 버튼도 같이 이동
-        title.setPosition(windowWidth / 2, windowHeight / 4 + viewYOffset);
-        startButton.setPosition(windowWidth / 2, windowHeight / 2 + buttonYOffset);
-        exitButton.setPosition(windowWidth / 2, windowHeight / 2 + 100 + buttonYOffset);
     }
 
     return false; // 윈도우가 닫힌 경우 false 반환
 }
+
 
 
 
@@ -353,6 +346,7 @@ bool runGame(sf::RenderWindow& window, sf::Font& font, float& hueTop, float& sat
                 if (event.key.code == sf::Keyboard::R)
                     return true; // 재시작
                 if (event.key.code == sf::Keyboard::Q)
+                    quit = true;
                     return false; // 종료
             }
         }
@@ -397,11 +391,18 @@ int main()
     float hueSpeed = 0.1f; // 색상 변화 속도
     float saturationSpeed = 0.001f; // 채도 변화 속도
     float valueSpeed = 0.0005f;      // 명도 변화 속도
+    
+
+
 
     while (window.isOpen()) {
         if (startScreen(window, font, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed, viewYOffset)) {
             window.setFramerateLimit(60); // 프레임 레이트 제한 설정
-            runGame(window, font, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed, viewYOffset);
+            while (true) {
+                runGame(window, font, hueTop, saturationTop, valueTop, hueBottom, saturationBottom, valueBottom, hueSpeed, saturationSpeed, valueSpeed, viewYOffset);
+                if (quit) { break; }
+            }   
+            break;
         }
         else {
             break; // 종료 신호 반환 시 루프 종료
