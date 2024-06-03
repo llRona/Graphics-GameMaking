@@ -216,15 +216,29 @@ int main()
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Block Stacking Game");
     window.setFramerateLimit(60);
 
-    // 폰트 로드
+    // 시작 화면 폰트 로드
     sf::Font font;
+    if (!font.loadFromFile("fonts/28 Days Later.ttf")) {
+        std::cerr << "ERROR" << std::endl;
+        return -1;
+    }
+    
+    // 폰트 로드
+    sf::Font gameFont;
     if (!font.loadFromFile("fonts/arial.ttf")) { // 폰트 파일 경로 설정
         return -1; // 폰트 로드 실패 시 종료
     }
 
+    // 시작화면 루프
+    while () {
+        // 시작 버튼 나가기 버튼 보이기
+        // 버튼 입력 확인
+        // 버튼 입력시 게임 종료 or break
+    }
+    
     // 게임 루프
     while (window.isOpen()) {
-        if (!runGame(window, font))
+        if (!runGame(window, gameFont))
             break; // 사용자가 종료를 선택하면 루프 종료
     }
 
